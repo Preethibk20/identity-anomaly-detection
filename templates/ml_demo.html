@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧠 ML Model Selector - Identity Anomaly Detection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .model-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .model-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            pointer-events: auto;
+            position: relative;
+            z-index: 10;
+        }
+
+        .model-card:hover {
+            border-color: #667eea;
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .model-card.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .model-card h3 {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+        }
+
+        .model-card .features {
+            background: rgba(0,0,0,0.1);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 2px solid #dee2e6;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .results-section {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .results-section.show {
+            display: block;
+        }
+
+        .training-results {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .training-results h4 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #667eea;
+        }
+
+        .metric-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .metric-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .test-results {
+            margin-top: 20px;
+        }
+
+        .activity-test {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            border-left: 5px solid #ddd;
+        }
+
+        .activity-test.low { border-left-color: #28a745; }
+        .activity-test.medium { border-left-color: #ffc107; }
+        .activity-test.high { border-left-color: #fd7e14; }
+        .activity-test.critical { border-left-color: #dc3545; }
+
+        .activity-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .activity-name {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .risk-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .risk-low { background: #d4edda; color: #155724; }
+        .risk-medium { background: #fff3cd; color: #856404; }
+        .risk-high { background: #f8d7da; color: #721c24; }
+        .risk-critical { background: #f5c6cb; color: #721c24; }
+
+        .activity-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .detail-group h5 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .algorithm-results {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .algorithm-result {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .algorithm-result:last-child {
+            border-bottom: none;
+        }
+
+        .status-normal { color: #28a745; font-weight: bold; }
+        .status-anomaly { color: #dc3545; font-weight: bold; }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .comparison-table th {
+            background: #667eea;
+            color: white;
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .status-message {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 ML Model Selector</h1>
+            <p>Interactive Identity Anomaly Detection System</p>
+            <p>Choose between Simple PoC and Advanced Enterprise ML models</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Data Loading Section -->
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="loadData()">📊 Load Sample Data</button>
+            </div>
+
+            <div id="dataStatus" class="status-message" style="display: none;"></div>
+
+            <!-- Model Selection -->
+            <div class="model-selector">
+                <div class="model-card" id="simpleCard" onclick="selectModel('simple')">
+                    <h3>🔵 Simple PoC Model</h3>
+                    <div class="features">
+                        <strong>Algorithm:</strong> Isolation Forest<br>
+                        <strong>Features:</strong> 9 basic features<br>
+                        <strong>Use Case:</strong> Proof of Concept
+                    </div>
+                    <p>Fast training, good for demos and initial testing</p>
+                    <button class="btn btn-secondary" style="margin-top: 10px;" onclick="event.stopPropagation(); selectModel('simple');">Select Simple Model</button>
+                </div>
+
+                <div class="model-card" id="advancedCard" onclick="selectModel('advanced')">
+                    <h3>🟣 Advanced Enterprise Model</h3>
+                    <div class="features">
+                        <strong>Algorithms:</strong> 4-algorithm ensemble<br>
+                        <strong>Features:</strong> 50+ advanced features<br>
+                        <strong>Use Case:</strong> Production deployment
+                    </div>
+                    <p>High accuracy, low false positives, enterprise-ready</p>
+                    <button class="btn btn-secondary" style="margin-top: 10px;" onclick="event.stopPropagation(); selectModel('advanced');">Select Advanced Model</button>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="trainBtn" onclick="trainModel()" disabled>
+                    🎯 Train Selected Model
+                </button>
+                <button class="btn btn-secondary" onclick="trainBothModels()">
+                    🚀 Train Both & Compare
+                </button>
+                <button class="btn btn-secondary" id="testBtn" onclick="testModel()" disabled>
+                    🧪 Test Model
+                </button>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultsSection" class="results-section">
+                <div id="loadingIndicator" class="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Training model, please wait...</p>
+                </div>
+
+                <div id="trainingResults"></div>
+                <div id="testResults"></div>
+                <div id="comparisonResults"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedModel = null;
+        let dataLoaded = false;
+        let trainedModels = {};
+
+        function loadData() {
+            showLoading('Loading sample authentication data...');
+            
+            fetch('/api/load-data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    showStatus(`✅ ${data.message}`, 'success');
+                    dataLoaded = true;
+                } else {
+                    showStatus(`❌ ${data.message}`, 'error');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showStatus(`❌ Error loading data: ${error}`, 'error');
+            });
+        }
+
+        function selectModel(modelType) {
+            console.log('selectModel called with:', modelType);
+            console.log('dataLoaded:', dataLoaded);
+            
+            selectedModel = modelType;
+            
+            // Update UI
+            document.querySelectorAll('.model-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            document.getElementById(modelType + 'Card').classList.add('active');
+            document.getElementById('trainBtn').disabled = !dataLoaded;
+            
+            // Update button text
+            const modelName = modelType === 'simple' ? 'Simple PoC' : 'Advanced Enterprise';
+            document.getElementById('trainBtn').innerHTML = `🎯 Train ${modelName} Model`;
+            
+            console.log('Model selected:', modelType);
+            console.log('Train button disabled:', document.getElementById('trainBtn').disabled);
+        }
+
+        function trainModel() {
+            if (!selectedModel || !dataLoaded) return;
+            
+            showLoading(`Training ${selectedModel} model...`);
+            
+            const endpoint = selectedModel === 'simple' ? '/api/train-simple' : '/api/train-advanced';
+            
+            fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    trainedModels[selectedModel] = data.results;
+                    displayTrainingResults(selectedModel, data.results);
+                    document.getElementById('testBtn').disabled = false;
+                    document.getElementById('testBtn').innerHTML = `🧪 Test ${selectedModel === 'simple' ? 'Simple' : 'Advanced'} Model`;
+                } else {
+                    showStatus(`❌ Training failed: ${data.message}`, 'error');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showStatus(`❌ Training error: ${error}`, 'error');
+            });
+        }
+
+        function trainBothModels() {
+            if (!dataLoaded) return;
+            
+            showLoading('Training both models...');
+            
+            // Train simple model first
+            fetch('/api/train-simple', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    trainedModels['simple'] = data.results;
+                    
+                    // Train advanced model
+                    return fetch('/api/train-advanced', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                }
+                throw new Error('Simple model training failed');
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    trainedModels['advanced'] = data.results;
+                    displayBothResults();
+                    showComparison();
+                } else {
+                    showStatus(`❌ Advanced model training failed: ${data.message}`, 'error');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showStatus(`❌ Training error: ${error}`, 'error');
+            });
+        }
+
+        function testModel() {
+            if (!selectedModel || !trainedModels[selectedModel]) return;
+            
+            showLoading(`Testing ${selectedModel} model...`);
+            
+            fetch(`/api/test-model/${selectedModel}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    displayTestResults(selectedModel, data.results);
+                } else {
+                    showStatus(`❌ Testing failed: ${data.message}`, 'error');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showStatus(`❌ Testing error: ${error}`, 'error');
+            });
+        }
+
+        function displayTrainingResults(modelType, results) {
+            const resultsSection = document.getElementById('resultsSection');
+            const trainingResults = document.getElementById('trainingResults');
+            
+            let html = `
+                <div class="training-results">
+                    <h4>🎯 ${modelType === 'simple' ? 'Simple PoC' : 'Advanced Enterprise'} Model Training Results</h4>
+                    
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">${results.algorithm || results.algorithms.length}</div>
+                            <div class="metric-label">${results.algorithm ? 'Algorithm' : 'Algorithms'}</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${results.features}</div>
+                            <div class="metric-label">Features</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${results.training_time}s</div>
+                            <div class="metric-label">Training Time</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${results.anomalies_detected || results.ensemble_anomalies}</div>
+                            <div class="metric-label">Anomalies Detected</div>
+                        </div>
+                    </div>
+            `;
+            
+            if (results.individual_results) {
+                html += `
+                    <h5>Individual Algorithm Results:</h5>
+                    <div class="algorithm-results">
+                `;
+                
+                for (const [name, result] of Object.entries(results.individual_results)) {
+                    html += `
+                        <div class="algorithm-result">
+                            <span>${name}</span>
+                            <span>${result.anomalies} anomalies (${result.percentage}%)</span>
+                        </div>
+                    `;
+                }
+                
+                html += `
+                        <div class="algorithm-result" style="border-top: 2px solid #667eea; margin-top: 10px; padding-top: 10px;">
+                            <span><strong>Ensemble Result</strong></span>
+                            <span><strong>${results.ensemble_anomalies} anomalies (${results.ensemble_percentage}%)</strong></span>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            trainingResults.innerHTML = html;
+            resultsSection.classList.add('show');
+        }
+
+        function displayBothResults() {
+            const trainingResults = document.getElementById('trainingResults');
+            
+            let html = `
+                <div class="training-results">
+                    <h4>🎯 Both Models Training Results</h4>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div>
+                            <h5 style="color: #667eea;">🔵 Simple PoC Model</h5>
+                            <div class="metrics-grid">
+                                <div class="metric-card">
+                                    <div class="metric-value">${trainedModels.simple.algorithm}</div>
+                                    <div class="metric-label">Algorithm</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">${trainedModels.simple.features}</div>
+                                    <div class="metric-label">Features</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">${trainedModels.simple.training_time}s</div>
+                                    <div class="metric-label">Training Time</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">${trainedModels.simple.anomalies_detected}</div>
+                                    <div class="metric-label">Anomalies</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h5 style="color: #764ba2;">🟣 Advanced Enterprise Model</h5>
+                            <div class="metrics-grid">
+                                <div class="metric-card">
+                                    <div class="metric-value">${trainedModels.advanced.algorithms.length}</div>
+                                    <div class="metric-label">Algorithms</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">${trainedModels.advanced.features}</div>
+                                    <div class="metric-label">Features</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">${trainedModels.advanced.training_time}s</div>
+                                    <div class="metric-label">Training Time</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">${trainedModels.advanced.ensemble_anomalies}</div>
+                                    <div class="metric-label">Anomalies</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('trainingResults').innerHTML = html;
+            document.getElementById('resultsSection').classList.add('show');
+        }
+
+        function displayTestResults(modelType, results) {
+            const testResults = document.getElementById('testResults');
+            
+            let html = `
+                <div class="training-results">
+                    <h4>🧪 ${modelType === 'simple' ? 'Simple PoC' : 'Advanced Enterprise'} Model Test Results</h4>
+                    <div class="test-results">
+            `;
+            
+            results.forEach(result => {
+                const riskClass = result.risk_level.toLowerCase();
+                html += `
+                    <div class="activity-test ${riskClass}">
+                        <div class="activity-header">
+                            <div class="activity-name">${result.activity_name}</div>
+                            <div class="risk-badge risk-${riskClass}">${result.risk_level} Risk</div>
+                        </div>
+                        
+                        <div class="activity-details">
+                            <div class="detail-group">
+                                <h5>Activity Details</h5>
+                                <div class="detail-item">
+                                    <span>Time:</span>
+                                    <span>${result.activity_data.timestamp}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span>User:</span>
+                                    <span>${result.activity_data.user_id}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span>Location:</span>
+                                    <span>${result.activity_data.location}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span>Device:</span>
+                                    <span>${result.activity_data.device}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span>Success:</span>
+                                    <span>${result.activity_data.success ? '✅' : '❌'}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="detail-group">
+                                <h5>Analysis Results</h5>
+                                <div class="detail-item">
+                                    <span>Anomaly Score:</span>
+                                    <span>${result.anomaly_score}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span>Is Anomaly:</span>
+                                    <span class="${result.is_anomaly ? 'status-anomaly' : 'status-normal'}">
+                                        ${result.is_anomaly ? '🚨 YES' : '✅ NO'}
+                                    </span>
+                                </div>
+                                <div class="detail-item">
+                                    <span>Risk Score:</span>
+                                    <span>${result.risk_score}/100</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span>Risk Level:</span>
+                                    <span class="risk-badge risk-${riskClass}">${result.risk_level}</span>
+                                </div>
+                            </div>
+                        </div>
+                `;
+                
+                if (result.algorithm_results) {
+                    html += `
+                        <div class="algorithm-results">
+                            <h5>Individual Algorithm Results:</h5>
+                    `;
+                    
+                    for (const [name, algResult] of Object.entries(result.algorithm_results)) {
+                        html += `
+                            <div class="algorithm-result">
+                                <span>${name}</span>
+                                <span class="${algResult.prediction === 'ANOMALY' ? 'status-anomaly' : 'status-normal'}">
+                                    ${algResult.prediction} (${algResult.score})
+                                </span>
+                            </div>
+                        `;
+                    }
+                    
+                    html += '</div>';
+                }
+                
+                html += '</div>';
+            });
+            
+            html += '</div></div>';
+            testResults.innerHTML = html;
+        }
+
+        function showComparison() {
+            fetch('/api/compare-models', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const comparisonResults = document.getElementById('comparisonResults');
+                    
+                    let html = `
+                        <div class="training-results">
+                            <h4>📊 Model Comparison</h4>
+                            <table class="comparison-table">
+                                <thead>
+                                    <tr>
+                                        <th>Metric</th>
+                                        <th>Simple PoC</th>
+                                        <th>Advanced Enterprise</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Algorithms</td>
+                                        <td>${data.comparison.simple.algorithms} (${data.comparison.simple.algorithm_name})</td>
+                                        <td>${data.comparison.advanced.algorithms} (${data.comparison.advanced.algorithm_name})</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Features</td>
+                                        <td>${data.comparison.simple.features} basic</td>
+                                        <td>${data.comparison.advanced.features}+ advanced</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Complexity</td>
+                                        <td>${data.comparison.simple.complexity}</td>
+                                        <td>${data.comparison.advanced.complexity}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Accuracy</td>
+                                        <td>${data.comparison.simple.accuracy}</td>
+                                        <td>${data.comparison.advanced.accuracy}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>False Positives</td>
+                                        <td>${data.comparison.simple.false_positives}</td>
+                                        <td>${data.comparison.advanced.false_positives}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Use Case</td>
+                                        <td>${data.comparison.simple.use_case}</td>
+                                        <td>${data.comparison.advanced.use_case}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    
+                    comparisonResults.innerHTML = html;
+                }
+            });
+        }
+
+        function showLoading(message) {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            loadingIndicator.querySelector('p').textContent = message;
+            loadingIndicator.style.display = 'block';
+            document.getElementById('resultsSection').classList.add('show');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingIndicator').style.display = 'none';
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('dataStatus');
+            statusDiv.textContent = message;
+            statusDiv.className = `status-message status-${type}`;
+            statusDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
